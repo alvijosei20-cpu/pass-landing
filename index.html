@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pass · Bóveda de contraseñas 100% local</title>
+  <meta name="description" content="Pass es un gestor de contraseñas para Android 100% local: AES-256-GCM, Argon2id, autofill, frase de paso y 2FA ligado al dispositivo. Sin servidor, sin cuentas, sin trackeo." />
+  <link rel="icon" type="image/png" href="icon.png" />
+  <meta property="og:title" content="Pass · Bóveda de contraseñas 100% local" />
+  <meta property="og:description" content="Tus contraseñas nunca salen de tu teléfono. Sin nube. Sin cuentas. Sin trackeo." />
+  <meta property="og:image" content="icon.png" />
+  <style>
+    :root {
+      --bg: #0b0b12;
+      --bg2: #0f1020;
+      --card: #15162a;
+      --card2: #1b1d36;
+      --border: rgba(255,255,255,.08);
+      --text: #eef0ff;
+      --text2: #b9bcd6;
+      --text3: #7f83a3;
+      --accent: #7c5cff;
+      --accent2: #22d3ee;
+      --green: #34d399;
+      --radius: 18px;
+      --maxw: 1120px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+
+    /* fondo animado */
+    .bgfx { position: fixed; inset: 0; z-index: -1; overflow: hidden; background:
+      radial-gradient(1000px 600px at 80% -10%, rgba(124,92,255,.25), transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, rgba(34,211,238,.14), transparent 55%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    }
+    .blob { position: absolute; width: 420px; height: 420px; border-radius: 50%; filter: blur(80px); opacity: .35; animation: float 16s ease-in-out infinite; }
+    .blob.b1 { background: #7c5cff; top: -120px; right: -80px; }
+    .blob.b2 { background: #22d3ee; bottom: -140px; left: -100px; animation-delay: -6s; }
+    @keyframes float { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-40px) scale(1.08); } }
+
+    /* nav */
+    header { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(14px); background: rgba(11,11,18,.6); border-bottom: 1px solid var(--border); }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 66px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: .2px; }
+    .brand img { width: 34px; height: 34px; border-radius: 9px; }
+    .nav-links { display: flex; gap: 26px; align-items: center; }
+    .nav-links a { color: var(--text2); font-size: 14.5px; font-weight: 600; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 9px; cursor: pointer;
+      border: none; border-radius: 12px; font-weight: 700; font-size: 15px;
+      padding: 12px 20px; color: #fff; background: linear-gradient(135deg, var(--accent), #5a3fd6);
+      box-shadow: 0 10px 30px rgba(124,92,255,.35); transition: transform .18s, box-shadow .18s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(124,92,255,.45); }
+    .btn.ghost { background: transparent; border: 1px solid var(--border); box-shadow: none; color: var(--text); }
+    .btn.ghost:hover { background: rgba(255,255,255,.05); }
+    .btn.sm { padding: 9px 16px; font-size: 14px; }
+
+    /* hero */
+    .hero { padding: 84px 0 60px; display: grid; grid-template-columns: 1.15fr .85fr; gap: 50px; align-items: center; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--accent2);
+      background: rgba(34,211,238,.1); border: 1px solid rgba(34,211,238,.25); padding: 6px 14px; border-radius: 999px; }
+    h1 { font-size: clamp(34px, 5vw, 58px); line-height: 1.08; margin: 20px 0 16px; letter-spacing: -1px; }
+    h1 .grad { background: linear-gradient(120deg, #a78bfa, #22d3ee); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .lead { font-size: clamp(16px, 2vw, 19px); color: var(--text2); max-width: 560px; }
+    .cta { display: flex; gap: 14px; margin-top: 30px; flex-wrap: wrap; }
+    .mini { display: flex; gap: 20px; margin-top: 26px; flex-wrap: wrap; color: var(--text3); font-size: 13.5px; }
+    .mini span { display: inline-flex; align-items: center; gap: 7px; }
+    .hero-art { position: relative; display: flex; justify-content: center; }
+    .phone { width: 280px; border-radius: 34px; padding: 14px; background: linear-gradient(160deg, var(--card2), var(--card));
+      border: 1px solid var(--border); box-shadow: 0 40px 90px rgba(0,0,0,.55); animation: bob 6s ease-in-out infinite; }
+    @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+    .phone img { width: 100%; border-radius: 22px; display: block; }
+
+    /* secciones */
+    section { padding: 66px 0; }
+    .eyebrow { color: var(--accent); font-weight: 800; font-size: 13px; letter-spacing: 1.6px; text-transform: uppercase; }
+    h2 { font-size: clamp(26px, 3.6vw, 40px); margin: 10px 0 14px; letter-spacing: -.5px; }
+    .muted { color: var(--text2); max-width: 640px; }
+
+    .grid { display: grid; gap: 18px; margin-top: 40px; }
+    .g3 { grid-template-columns: repeat(3, 1fr); }
+    .g2 { grid-template-columns: repeat(2, 1fr); }
+    .card { background: linear-gradient(160deg, var(--card), rgba(21,22,42,.6)); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 26px; transition: transform .2s, border-color .2s, box-shadow .2s; }
+    .card:hover { transform: translateY(-5px); border-color: rgba(124,92,255,.4); box-shadow: 0 20px 50px rgba(0,0,0,.4); }
+    .ic { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; margin-bottom: 16px;
+      background: rgba(124,92,255,.14); color: var(--accent); }
+    .ic svg { width: 24px; height: 24px; }
+    .card h3 { margin: 0 0 8px; font-size: 18px; }
+    .card p { margin: 0; color: var(--text2); font-size: 14.5px; }
+
+    /* pasos */
+    .steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-top: 40px; counter-reset: s; }
+    .step { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px 24px 24px; }
+    .step::before { counter-increment: s; content: counter(s); position: absolute; top: -16px; left: 22px;
+      width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), #5a3fd6); color: #fff; box-shadow: 0 8px 22px rgba(124,92,255,.4); }
+    .step h3 { margin: 14px 0 6px; font-size: 17px; }
+    .step p { margin: 0; color: var(--text2); font-size: 14px; }
+
+    /* precio */
+    .price { display: grid; grid-template-columns: 1.1fr .9fr; gap: 30px; align-items: center; }
+    .pricecard { background: linear-gradient(160deg, var(--card2), var(--card)); border: 1px solid rgba(124,92,255,.35);
+      border-radius: 24px; padding: 34px; text-align: center; box-shadow: 0 30px 70px rgba(124,92,255,.18); }
+    .amount { font-size: 58px; font-weight: 900; letter-spacing: -2px; }
+    .amount small { font-size: 20px; color: var(--text3); font-weight: 700; }
+    .pricecard ul { list-style: none; padding: 0; margin: 22px 0 26px; text-align: left; }
+    .pricecard li { display: flex; gap: 10px; align-items: flex-start; color: var(--text2); padding: 7px 0; font-size: 14.5px; }
+    .check { color: var(--green); flex: 0 0 auto; margin-top: 3px; }
+    .badge { display: inline-block; font-size: 12px; font-weight: 800; color: var(--green); background: rgba(52,211,153,.12);
+      border: 1px solid rgba(52,211,153,.3); padding: 4px 12px; border-radius: 999px; margin-bottom: 14px; }
+
+    /* faq */
+    details { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; margin-bottom: 12px; }
+    summary { cursor: pointer; font-weight: 700; font-size: 15.5px; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; color: var(--accent); font-size: 22px; font-weight: 700; transition: transform .2s; }
+    details[open] summary::after { transform: rotate(45deg); }
+    details p { color: var(--text2); margin: 12px 0 0; font-size: 14.5px; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 0; color: var(--text3); font-size: 14px; }
+    .foot { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+
+    /* reveal */
+    .reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; text-align: center; padding-top: 56px; }
+      .hero-art { order: -1; }
+      .lead { margin: 0 auto; }
+      .cta, .mini { justify-content: center; }
+      .g3, .g2, .steps, .price { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bgfx"><div class="blob b1"></div><div class="blob b2"></div></div>
+
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="#top"><img src="icon.png" alt="Pass" /> Pass</a>
+      <nav class="nav-links">
+        <a href="#features">Funciones</a>
+        <a href="#seguridad">Seguridad</a>
+        <a href="#comprar">Cómo comprar</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <a class="btn sm" href="https://discord.com/channels/1559765968836886608/1559771451819823104" target="_blank" rel="noopener">Comprar licencia</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <div class="wrap hero">
+      <div>
+        <span class="pill">● 100% local · sin servidor</span>
+        <h1>Tus contraseñas <span class="grad">nunca salen</span> de tu teléfono.</h1>
+        <p class="lead">Pass es un gestor de contraseñas para Android que cifra todo en tu dispositivo. Sin nube, sin cuentas, sin trackeo. Ni nosotros podemos ver tus datos.</p>
+        <div class="cta">
+          <a class="btn" href="https://discord.com/channels/1559765968836886608/1559771451819823104" target="_blank" rel="noopener">Comprar por $15 (pago único)</a>
+          <a class="btn ghost" href="#features">Ver funciones</a>
+        </div>
+        <div class="mini">
+          <span>🔒 AES-256-GCM</span>
+          <span>🧩 Argon2id</span>
+          <span>🚫 Sin telemetría</span>
+          <span>📴 Funciona offline</span>
+        </div>
+      </div>
+      <div class="hero-art">
+        <div class="phone"><img src="icon.png" alt="App Pass" /></div>
+      </div>
+    </div>
+
+    <section id="features">
+      <div class="wrap">
+        <div class="reveal">
+          <div class="eyebrow">Funciones</div>
+          <h2>Todo lo que necesitas, nada que te espíe</h2>
+          <p class="muted">Diseñado para quien no confía su seguridad a un servidor ajeno.</p>
+        </div>
+        <div class="grid g3">
+          <div class="card reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l7 4v6c0 5-3 8-7 10-4-2-7-5-7-10V6l7-4z"/></svg></div>
+            <h3>Cifrado real</h3><p>AES-256-GCM con clave maestra aleatoria de 256 bits y Argon2id (64 MiB) para derivar tu clave.</p>
+          </div>
+          <div class="card reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H5.2L4 17.2V4z"/><path d="M8 9h8M8 12h5"/></svg></div>
+            <h3>Autofill en apps y navegadores</h3><p>Rellena tus logins en Chrome, Firefox y apps nativas con el servicio de autofill de Android.</p>
+          </div>
+          <div class="card reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></div>
+            <h3>Frase de paso o PIN 6–12</h3><p>Elige un PIN largo o una frase de paso alfanumérica. Tú decides cuánta entropía quieres.</p>
+          </div>
+          <div class="card reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.5 6H21l-5 4 2 7-6-4-6 4 2-7-5-4h6.5z"/></svg></div>
+            <h3>2FA ligado al dispositivo</h3><p>La clave maestra se sella con el chip seguro (Keystore). Aunque copien el archivo, no abre en otro teléfono.</p>
+          </div>
+          <div class="card reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+            <h3>Auto-bloqueo</h3><p>La bóveda se bloquea sola al salir de la app. Desbloqueo con huella o rostro.</p>
+          </div>
+          <div class="card reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
+            <h3>Sin nube ni cuentas</h3><p>No hay servidor que hackear. Tus datos viven cifrados solo en tu teléfono. Funciona sin internet.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="seguridad">
+      <div class="wrap">
+        <div class="reveal">
+          <div class="eyebrow">Seguridad</div>
+          <h2>Arquitectura pensada para no confiar en nadie</h2>
+        </div>
+        <div class="grid g2">
+          <div class="card reveal"><h3>Zero-cloud por diseño</h3><p>No existe backend. No hay base de datos remota, ni cuentas, ni recuperación por correo. La superficie de ataque se reduce a tu propio dispositivo.</p></div>
+          <div class="card reveal"><h3>Criptografía moderna</h3><p>AES-256-GCM (no determinista, IV nuevo por guardado) + Argon2id para resistir ataques de fuerza bruta offline.</p></div>
+          <div class="card reveal"><h3>Anti-root y anti-captura</h3><p>Detecta root y superposiciones; bloquea capturas de pantalla y la vista previa en recientes (FLAG_SECURE).</p></div>
+          <div class="card reveal"><h3>Licencia no forjable</h3><p>Las licencias se firman con Ed25519; el APK solo lleva la clave pública. Nadie puede generar códigos sin la privada.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="comprar">
+      <div class="wrap">
+        <div class="reveal">
+          <div class="eyebrow">Cómo comprar</div>
+          <h2>Listo en 3 pasos</h2>
+          <p class="muted">La licencia está ligada a tu dispositivo y sobrevive a reinstalar la app.</p>
+        </div>
+        <div class="steps">
+          <div class="step reveal"><h3>Instala la app</h3><p>Descarga el APK y ábrelo. Verás tu <b>Device ID</b> en la pantalla de registro.</p></div>
+          <div class="step reveal"><h3>Entra a Discord</h3><p>Únete a nuestro Discord y abre un ticket con tu Device ID para solicitar la licencia.</p></div>
+          <div class="step reveal"><h3>Recibe tu código</h3><p>Te enviamos tu código de activación. Pégalo y tu bóveda queda activada para siempre.</p></div>
+        </div>
+        <div style="margin-top:34px; text-align:center">
+          <a class="btn" href="https://discord.com/channels/1559765968836886608/1559771451819823104" target="_blank" rel="noopener">Abrir Discord y comprar</a>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap price">
+        <div class="reveal">
+          <div class="eyebrow">Precio</div>
+          <h2>Un pago. Tuyo para siempre.</h2>
+          <p class="muted">Sin suscripciones, sin renovaciones, sin letra pequeña. Comparado con los gestores en la nube, cuesta menos que medio año de suscripción — y no depende de ningún servidor.</p>
+        </div>
+        <div class="pricecard reveal">
+          <span class="badge">Pago único · sin suscripción</span>
+          <div class="amount">$15 <small>USD</small></div>
+          <ul>
+            <li><span class="check">✓</span> Licencia de por vida para tu dispositivo</li>
+            <li><span class="check">✓</span> Autofill en navegadores y apps</li>
+            <li><span class="check">✓</span> Frase de paso + 2FA device-bound</li>
+            <li><span class="check">✓</span> Sin nube, sin cuentas, sin trackeo</li>
+            <li><span class="check">✓</span> Actualizaciones de la app</li>
+          </ul>
+          <a class="btn" style="width:100%; justify-content:center" href="https://discord.com/channels/1559765968836886608/1559771451819823104" target="_blank" rel="noopener">Comprar por Discord</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap">
+        <div class="reveal"><div class="eyebrow">Preguntas</div><h2>Dudas frecuentes</h2></div>
+        <div style="margin-top:26px">
+          <details class="reveal"><summary>¿Dónde se guardan mis contraseñas?</summary><p>Únicamente en tu teléfono, cifradas con AES-256-GCM. No existe servidor ni copia en la nube. Ni nosotros podemos leerlas.</p></details>
+          <details class="reveal"><summary>¿Qué pasa si pierdo el teléfono?</summary><p>Como no hay nube, puedes exportar una copia cifrada (portable) desde Ajustes y restaurarla en un teléfono nuevo. Te recomendamos hacerlo.</p></details>
+          <details class="reveal"><summary>¿Sirve en iPhone?</summary><p>Por ahora es solo Android (usa el autofill nativo de Android).</p></details>
+          <details class="reveal"><summary>¿La licencia caduca?</summary><p>No. Es un pago único, ligado a tu dispositivo y sobrevive a reinstalar la app.</p></details>
+          <details class="reveal"><summary>¿Cómo pago?</summary><p>Entra a nuestro Discord, abre un ticket y coordinamos el pago y la entrega de tu código de activación.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <div class="brand"><img src="icon.png" alt="Pass" style="width:28px;height:28px" /> Pass</div>
+      <div>Bóveda de contraseñas 100% local · Hecho para quien no confía en nadie.</div>
+      <a class="btn ghost sm" href="https://discord.com/channels/1559765968836886608/1559771451819823104" target="_blank" rel="noopener">Discord</a>
+    </div>
+  </footer>
+
+  <script>
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = (i % 6) * 60 + 'ms'; io.observe(el); });
+  </script>
+</body>
+</html>
